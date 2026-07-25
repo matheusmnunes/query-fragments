@@ -46,3 +46,10 @@ export type InsertBuilder = {
     values(data: EnumType): InsertBuilder;
     build(): Fragment;
 };
+
+export type UpdateBuilder = {
+    table(table: TableColumns<Columns>): UpdateBuilder;
+    set(data: EnumType): UpdateBuilder;
+    where(filters: EnumType, op?: string): WhereBuilder<UpdateBuilder>;
+    build(): Fragment;
+};

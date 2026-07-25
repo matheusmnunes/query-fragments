@@ -1,15 +1,17 @@
 import { SQL, empty, Columns, t } from 'sql-string-ts';
 import type { EnumType, TableColumns, Fragment } from './types.js';
-import { generateFilters, whereBuilder, setBindValuesUpdate } from './core.js'
+import { generateFilters, whereBuilder, setBindValuesUpdate } from './core.js';
 
-export const updateBuilder = (cfg = { alias: false, quote: true }) => {
+import type { UpdateBuilder, WhereBuilder, SelectBuilder } from './builder-types.js';
+
+export const updateBuilder = (cfg = { alias: false, quote: true }): UpdateBuilder => {
     let query = empty;
     let currentTable: TableColumns<Columns> | null = null;
     const alias = cfg.alias;
     const quote = cfg.quote;
     const prefix = cfg.alias;
 
-    const mainBuilder = {
+    const mainBuilder: UpdateBuilder = {
         table(table: TableColumns<Columns>) {
             query = query.concat(SQL`UPDATE ${t(table, { alias, quote })}`);
             currentTable = table;
@@ -30,7 +32,7 @@ export const updateBuilder = (cfg = { alias: false, quote: true }) => {
        
            return mainBuilder;
         },
-        where<T>( filters: EnumType, op = '=' ) {
+        where ( filters: EnumType, op = '=' ): WhereBuilder<UpdateBuilder> {
             const fragments: Fragment[] = [];
 
             const fields = Object.keys(filters)
