@@ -1,23 +1,24 @@
 import type { EnumType, TableColumns, Fragment } from './types.ts';
 import { SQL, empty, Columns, t } from 'sql-string-ts';
 import {generateFilters, whereBuilder} from './core.js'
+import type { DeleteBuilder, WhereBuilder } from './builder-types.js';
 
 
-export const deleteBuilder = (cfg = { alias: false, quote: true }) => {
+export const deleteBuilder = (cfg = { alias: false, quote: true }): DeleteBuilder => {
     let query = empty;
     let currentTable: TableColumns<Columns> | null = null;
     const alias = cfg.alias;
     const quote = cfg.quote;
     const prefix = cfg.alias;
 
-    const mainBuilder = {
+    const mainBuilder: DeleteBuilder = {
         from(table: TableColumns<Columns>) {
             query = query.concat(SQL`DELETE FROM ${t(table, { alias, quote })}`);
             currentTable = table;
 
             return mainBuilder;
         },
-        where<T>( filters: EnumType, op = '=' ) {
+        where<T>( filters: EnumType, op = '=' ): WhereBuilder<DeleteBuilder> {
             const fragments: Fragment[] = [];
 
             const fields = Object.keys(filters)

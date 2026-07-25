@@ -53,3 +53,9 @@ export type UpdateBuilder = {
     where(filters: EnumType, op?: string): WhereBuilder<UpdateBuilder>;
     build(): Fragment;
 };
+
+export type DeleteBuilder = {
+    from(table: TableColumns<Columns>): DeleteBuilder;
+    where(filters: EnumType, op?: string): WhereBuilder<DeleteBuilder>;
+    build(): Fragment;
+};
