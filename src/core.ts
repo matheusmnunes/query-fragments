@@ -1,4 +1,4 @@
-import { SQL, select, empty, ColumnMeta, bind, Schema, Columns, t, c } from 'sql-string-ts';
+import { SQL, select, empty, ColumnMeta, bind, Columns, c } from 'sql-string-ts';
 import type {
     EnumType,
     TableColumns,
@@ -11,7 +11,7 @@ import type {
     SortColumn,
     AppendQuery
 } from './types.js';
-import { WhereBuilder, SelectBuilder } from './builder-types.js'
+import { WhereBuilder } from './builder-types.js'
 
 /**
  * Gera os joins formatados
@@ -217,7 +217,7 @@ const colsForInsert = (data: EnumType, table: TableColumns<Columns>): { data: En
  * @param table 
  * @returns 
  */
-const setColumnsInsert = (data: EnumType, table: TableColumns<Columns>): Fragment => {
+const generateColumnsInsert = (data: EnumType, table: TableColumns<Columns>): Fragment => {
     const sanitizedData = { ...data }
 
     if (sanitizedData.hasOwnProperty('erased')) delete sanitizedData.erased
@@ -242,7 +242,7 @@ const setColumnsInsert = (data: EnumType, table: TableColumns<Columns>): Fragmen
  * @param table Tabela
  * @returns Fragment
  */
-const setBindValuesInsert = (data: EnumType, table: TableColumns<Columns>): Fragment => {
+const generateValuesInsert = (data: EnumType, table: TableColumns<Columns>): Fragment => {
     const b = colsForInsert(data, table);
     const count = b.columns.length;
 
@@ -263,7 +263,7 @@ const setBindValuesInsert = (data: EnumType, table: TableColumns<Columns>): Frag
  * @param table Tabela
  * @returns Fragmento
  */
-const setBindValuesUpdate = (data: EnumType, table: TableColumns<Columns>, cfg = { prefix: false, quote: true }): Fragment => {
+const generateValuesUpdate = (data: EnumType, table: TableColumns<Columns>, cfg = { prefix: false, quote: true }): Fragment => {
     const colsForUpdate = Object.keys(data)
         .map((x) => table[x])
         .filter((x): x is ColumnMeta<Columns> => x !== undefined);
@@ -376,9 +376,9 @@ export {
     groupBy,
     generateSort,
     generatePagination,
-    setColumnsInsert,
-    setBindValuesInsert,
-    setBindValuesUpdate,
+    generateColumnsInsert,
+    generateValuesInsert,
+    generateValuesUpdate,
     whereBuilder,
     hasFragment, 
     isFragment,

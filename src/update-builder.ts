@@ -1,6 +1,6 @@
 import { SQL, empty, Columns, t } from 'sql-string-ts';
 import type { EnumType, TableColumns, Fragment } from './types.js';
-import { generateFilters, whereBuilder, setBindValuesUpdate } from './core.js';
+import { generateFilters, whereBuilder, generateValuesUpdate } from './core.js';
 
 import type { UpdateBuilder, WhereBuilder, SelectBuilder } from './builder-types.js';
 
@@ -27,7 +27,7 @@ export const updateBuilder = (cfg = { alias: false, quote: true }): UpdateBuilde
             }
 
            query = query.concat(
-               SQL` SET ${setBindValuesUpdate(data, currentTable, { prefix, quote })}`
+               SQL` SET ${generateValuesUpdate(data, currentTable, { prefix, quote })}`
            );
        
            return mainBuilder;

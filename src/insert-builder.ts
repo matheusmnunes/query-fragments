@@ -1,7 +1,7 @@
 import type { EnumType, TableColumns } from './types.js';
 import type { InsertBuilder } from './builder-types.js';
 import { SQL, empty, Columns, t } from 'sql-string-ts';
-import {setColumnsInsert, setBindValuesInsert} from './core.js'
+import {generateColumnsInsert, generateValuesInsert} from './core.js'
 
 export const insertBuilder = (): InsertBuilder => {
     let query = empty;
@@ -22,11 +22,11 @@ export const insertBuilder = (): InsertBuilder => {
             }
 
            query = query.concat(
-               setColumnsInsert(data, currentTable)
+               generateColumnsInsert(data, currentTable)
            );
        
            query = query.concat(
-               SQL` VALUES ${setBindValuesInsert(data, currentTable)}`
+               SQL` VALUES ${generateValuesInsert(data, currentTable)}`
            );
        
            return mainBuilder;
