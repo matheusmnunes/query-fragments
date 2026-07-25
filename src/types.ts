@@ -7,12 +7,13 @@ type EnumType = Record<string, string | number>;
 
 type TableColumns<T> = Record<keyof T, ColumnMeta<T>>;
 
-
 type ColumnInput = Fragment | ColumnMeta<Columns>;
 
 type ColumnsInput = ColumnInput | ColumnInput[];
 
-type Tables<T> = Schema<T> | Schema<T>[];
+type AnySchema = Schema<any>;
+
+type Tables = AnySchema | readonly AnySchema[];
 
 type Join = {
     table: Schema<EnumType>;
@@ -46,5 +47,6 @@ export type {
     SearchFilter,
     SortColumn,
     AppendQuery,
-    ColumnMeta
+    ColumnMeta,
+    Columns
 };

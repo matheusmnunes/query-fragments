@@ -11,6 +11,7 @@ import type {
     SortColumn,
     AppendQuery
 } from './types.js';
+import { WhereBuilder, SelectBuilder } from './builder-types.js'
 
 /**
  * Gera os joins formatados
@@ -54,27 +55,32 @@ const generateColumns = (...columns: Array<ColumnsInput>): Fragment => {
  * @param defaultFilters Objeto com filtros padrões. Ex: {erased:0, active:1}
  * @returns Fragmento
  */
-const generateFilters = <T>(tables: Tables<T>, filters?: EnumType, op = '=', config = { prefix: true, quote: true }): Fragment => {
+const generateFilters = (tables: Tables, filters?: EnumType, op = '=', config = { prefix: true, quote: true }): Fragment => {
     if (!filters) return empty;
 
-    const fields = Object.keys(filters) as Array<keyof Schema<T>>;
+    const fields = Object.keys(filters);
 
     if (fields.length === 0) return empty;
     
     const t = !Array.isArray(tables) ? [tables] : tables;
-    const where = empty;
 
     const f = filters;
-    let final = empty;
 
-    t.forEach((table, i) => {
-        final = final.concat(
-            fields.map((x) => Object.prototype.hasOwnProperty.call(table, x) ? SQL`${c(table[x], config)}`.concat(table[x] ? SQL` ${op} ${bind(f[x])}` : empty) : empty)
-                .reduce((a, x, i) => a.concat(x.strings[0] ? SQL` AND ${x}` : empty))
-        );
-    });
+    const where = t
+        .flatMap(table =>
+            fields.map(field =>
+                Object.prototype.hasOwnProperty.call(table, field)
+                    ? SQL`${c(table[field], config)} ${op} ${bind(f[field])}`
+                    : empty
+            )
+        )
+        .filter(hasFragment);
 
-    return where.concat(final.strings[0] ? SQL` `.concat(final) : empty);
+    if(where.length === 0) return empty;
+
+    const final = where.reduce( (a, x, i) => a.concat(i > 0 ? SQL` AND ${x}` : x), empty );
+
+    return SQL` ${final}`;
 };
 
 /**
@@ -119,7 +125,7 @@ const getRawFilters = (rawFilters = empty): Fragment => {
  * @param config 
  * @returns 
  */
-const searchFilter = <T>(tables: Tables<T>, json: SearchFilter, config = { prefix: true, quote: true }):Fragment => {
+const searchFilter = (tables: Tables, json: SearchFilter, config = { prefix: true, quote: true }):Fragment => {
     if (Object.keys(json).length === 0) return empty
 
     const tableL  = Array.isArray(tables) ? tables : [tables];
@@ -130,7 +136,7 @@ const searchFilter = <T>(tables: Tables<T>, json: SearchFilter, config = { prefi
         .flatMap((table) => 
             filters
                 .filter(x => Object.prototype.hasOwnProperty.call(table, x))
-                .map(x => SQL`${c(table[x as keyof Schema<T>], config)} LIKE ${value}`)
+                .map(x => SQL`${c(table[x], config)} LIKE ${value}`)
         )
         .reduce((a, x) => a.concat(a.strings[0] ? SQL` OR ${x}` : x), empty)
 
@@ -299,10 +305,10 @@ const whereBuilder = <T, TMainBuilder>(
     appendQuery: AppendQuery,
     fragments: Fragment[],
     filters: EnumType | undefined,
-    tables: Tables<T>
-) => {
+    tables: Tables
+): WhereBuilder<TMainBuilder> => {
 
-    const filterBuilder = {
+    const filterBuilder: WhereBuilder<TMainBuilder> = {
         additional(...fields: Array<string>) {
             fragments.push(additionalFilters(filters,...fields));
 
@@ -321,7 +327,7 @@ const whereBuilder = <T, TMainBuilder>(
             return filterBuilderProxy;
         },
 
-        end() {
+        end(): TMainBuilder {
             const validFragments = fragments.filter(hasFragment);
 
             if(validFragments.length > 0) {

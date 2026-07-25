@@ -1,21 +1,25 @@
 import { SQL, empty, Columns, t } from 'sql-string-ts';
 import type { 
     EnumType, TableColumns, Fragment, Join, ColumnsInput, Tables, ColumnMeta,
-    SortColumn 
+    SortColumn
 } from './types.js';
 import {
     generateFilters, generateColumns, generateJoins, whereBuilder, hasFragment, isFragment,
     builderError, extractTableJoins, groupBy, generateSort, generatePagination
 } from './core.js'
 
-export const selectBuilder = (cfg = { alias: true, quote: true }) => {
+import type { SelectBuilder, SelectJoinBuilder, WhereBuilder
+} from './builder-types.js';
+
+
+export const selectBuilder = (cfg = { alias: true, quote: true }):SelectBuilder => {
     let query        = empty;
     let currentJoins: Join[] = [];
     const alias = cfg.alias;
     const quote = cfg.quote;
     const prefix = cfg.alias;
 
-    const mainBuilder = {
+    const mainBuilder: SelectBuilder = {
         select(...columns: Array<ColumnsInput>) {
             const generatedColumns = generateColumns(...columns);
 
@@ -30,18 +34,18 @@ export const selectBuilder = (cfg = { alias: true, quote: true }) => {
             return mainBuilder;
         },
 
-        from(table: TableColumns<Columns> | Fragment) {
+        from(table: TableColumns<Columns> | Fragment):SelectBuilder {
             query = query.concat(SQL` FROM ${isFragment(table) ? table : t(table, {alias, quote})} `);
 
             return mainBuilder;
         },
 
-        joins(joins: Join[] = []) {
+        joins(joins: Join[] = []): SelectJoinBuilder {
             const rawJoins: Fragment[] = [];
 
             currentJoins = joins;
 
-            const joinBuilder = {
+            const joinBuilder: SelectJoinBuilder = {
                 raw(fragment: Fragment) {
                     if(hasFragment(fragment)) {
                         rawJoins.push(fragment);
@@ -50,7 +54,7 @@ export const selectBuilder = (cfg = { alias: true, quote: true }) => {
                     return joinBuilderProxy;
                 },
             
-                end() {
+                end(): SelectBuilder {
                     query = query.concat(generateJoins(currentJoins));
                 
                     rawJoins.forEach(fragment => {
@@ -74,7 +78,7 @@ export const selectBuilder = (cfg = { alias: true, quote: true }) => {
             return joinBuilderProxy;
         },
 
-        where<T>( tables: Tables<T>, filters?: EnumType, op = '=') {
+        where ( tables: Tables, filters?: EnumType, op = '='): WhereBuilder<SelectBuilder> {
             const fragments: Fragment[] = [];
             const config = { prefix, quote }
 
