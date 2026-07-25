@@ -1,12 +1,13 @@
 import type { EnumType, TableColumns } from './types.js';
+import type { InsertBuilder } from './builder-types.js';
 import { SQL, empty, Columns, t } from 'sql-string-ts';
 import {setColumnsInsert, setBindValuesInsert} from './core.js'
 
-export const insertBuilder = () => {
+export const insertBuilder = (): InsertBuilder => {
     let query = empty;
     let currentTable: TableColumns<Columns> | null = null;
 
-    const mainBuilder = {
+    const mainBuilder: InsertBuilder = {
         into(table: TableColumns<Columns>) {
             query = query.concat(SQL`INSERT INTO ${t(table)}`);
             currentTable = table;

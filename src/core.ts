@@ -229,7 +229,7 @@ const setColumnsInsert = (data: EnumType, table: TableColumns<Columns>): Fragmen
         .concat(
             b.columns
                 .map((x) => SQL`${x}`)
-                .reduce((a, x, i) => a.concat(i < count -1 ? ', ' : empty).concat(x)),
+                .reduce((a, x, i) => a.concat(i < count ? ', ' : empty).concat(x)),
         )
         .concat(')');
 
@@ -250,7 +250,7 @@ const setBindValuesInsert = (data: EnumType, table: TableColumns<Columns>): Frag
         .concat(
             b.columns
                 .map((x) => SQL`${bind(b.data[x.name])}`)
-                .reduce((a, x, i) => a.concat(i < count - 1 ? ', ' : empty).concat(x)),
+                .reduce((a, x, i) => a.concat(i < count ? ', ' : empty).concat(x)),
         )
         .concat(')');
 

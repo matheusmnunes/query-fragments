@@ -40,3 +40,9 @@ export type WhereBuilder<TMainBuilder> = {
     search(data: SearchFilter): WhereBuilder<TMainBuilder>;
     end(): TMainBuilder;
 };
+
+export type InsertBuilder = {
+    into(table: TableColumns<Columns>): InsertBuilder;
+    values(data: EnumType): InsertBuilder;
+    build(): Fragment;
+};
