@@ -14,8 +14,8 @@ import type {
 import { WhereBuilder } from './builder-types.js'
 
 /**
- * Gera os joins formatados
- * @param joins Joins da tabela
+ * 
+ * @param joins 
  * @returns Fragment
  */
 const generateJoins = (joins: Join[]): Fragment => {
@@ -39,21 +39,21 @@ const normalizeColumns = ( columns: Array<ColumnsInput> ): Array<ColumnInput> =>
 };
 
 /**
- * Gera as colunas das tableas
- * @param columns Colunas das tabelas
- * @returns Fragmentos
+ * 
+ * @param columns 
+ * @returns Fragment
  */
 const generateColumns = (...columns: Array<ColumnsInput>): Fragment => {
     return generateColumnList( ...normalizeColumns(columns) );
 };
 
 /**
- * Gera os filtros de acordo com os campos presentes na tabela. Um array de tabelas pode ser passado. 
- * Obs.: Necessário existir o filters no request
- * @param tables Tabela do modelo
- * @param filters Dados do request
- * @param defaultFilters Objeto com filtros padrões. Ex: {erased:0, active:1}
- * @returns Fragmento
+ * 
+ * @param tables 
+ * @param filters 
+ * @param op 
+ * @param config 
+ * @returns Fragment
  */
 const generateFilters = (tables: Tables, filters?: EnumType, op = '=', config = { prefix: true, quote: true }): Fragment => {
     if (!filters) return empty;
@@ -84,11 +84,10 @@ const generateFilters = (tables: Tables, filters?: EnumType, op = '=', config = 
 };
 
 /**
- * Gera filtros com os campos desejados a partir de um array. Ideal para campos não presentes no modelo da tabela, mas que cheguem no request.
- * Ex.:'alias1.field1','field2','alias2.field1'
- * @param array Lista de campos desejados
- * @param data Dados do request
- * @returns Fragmento
+ * 
+ * @param data 
+ * @param array 
+ * @returns Fragment
  */
 const additionalFilters = (data: EnumType | undefined, ...array: Array<string> ): Fragment => {
     if (!data || array.length === 0) return empty;
@@ -109,9 +108,9 @@ const additionalFilters = (data: EnumType | undefined, ...array: Array<string> )
 };
 
 /**
- * Retorna um Fragmento passado. Ex.: SQL` AND alias1.field1 AND alias1.field2`
- * @param rawFilters Fragmento puro.
- * @returns Fragmento
+ * 
+ * @param rawFilters 
+ * @returns Fragment
  */
 const getRawFilters = (rawFilters = empty): Fragment => {
     return rawFilters;
@@ -123,7 +122,7 @@ const getRawFilters = (rawFilters = empty): Fragment => {
  * @param table 
  * @param json 
  * @param config 
- * @returns 
+ * @returns Fragment
  */
 const searchFilter = (tables: Tables, json: SearchFilter, config = { prefix: true, quote: true }):Fragment => {
     if (Object.keys(json).length === 0) return empty
@@ -153,16 +152,19 @@ const generateColumnList = ( ...columns: Array<ColumnMeta<Columns> | Fragment> )
         .reduce( (a, column, ix) => a.concat(ix > 0 ? SQL`, ${column}` : column), empty );
 };
 
-
+/**
+ * 
+ * @param columns 
+ * @returns Fragment
+ */
 function groupBy <Columns>( ...columns: Array<ColumnMeta<Columns> | Fragment> ): Fragment {
     return generateColumnList(...columns);
 }
 
 /**
- * Gera um sort
- * @param sort Direção do sort
- * @param columns Colunas utilizadas no sort
- * @return Fragment
+ * 
+ * @param sorts 
+ * @returns Fragment
  */
 const generateSort = (...sorts: SortColumn[]): Fragment => {
     const validSorts = sorts.filter(({ column }) => hasColumn(column));
@@ -185,7 +187,7 @@ const generateSort = (...sorts: SortColumn[]): Fragment => {
 }
 
 /**
- * Cria paginação para o SQL. Recebe um objeto com start e limit.
+ * 
  * @param start 
  * @param limit
  * @return Fragment
@@ -215,7 +217,7 @@ const colsForInsert = (data: EnumType, table: TableColumns<Columns>): { data: En
  * 
  * @param data 
  * @param table 
- * @returns 
+ * @returns Fragment
  */
 const generateColumnsInsert = (data: EnumType, table: TableColumns<Columns>): Fragment => {
     const sanitizedData = { ...data }
@@ -237,9 +239,9 @@ const generateColumnsInsert = (data: EnumType, table: TableColumns<Columns>): Fr
 }
 
 /**
- * Gera os binds do INSERT de acordo com os campos que chegaram e se estão presentes na tabela
- * @param data Dados do request
- * @param table Tabela
+ * 
+ * @param data 
+ * @param table 
  * @returns Fragment
  */
 const generateValuesInsert = (data: EnumType, table: TableColumns<Columns>): Fragment => {
@@ -258,10 +260,11 @@ const generateValuesInsert = (data: EnumType, table: TableColumns<Columns>): Fra
 };
 
 /**
- * Gera os binds do UPDATE de acordo com os campos que chegaram e se estão presentes na tabela
- * @param data Dados do request
- * @param table Tabela
- * @returns Fragmento
+ * 
+ * @param data 
+ * @param table 
+ * @param cfg 
+ * @returns Fragment
  */
 const generateValuesUpdate = (data: EnumType, table: TableColumns<Columns>, cfg = { prefix: false, quote: true }): Fragment => {
     const colsForUpdate = Object.keys(data)
@@ -284,9 +287,9 @@ const generateValuesUpdate = (data: EnumType, table: TableColumns<Columns>, cfg 
 };
 
 /**
- * Retorna um array de tabelas usadas para compor os joins
- * @param joins Joins
- * @returns Array
+ * 
+ * @param joins 
+ * @returns Fragment
  */
 const extractTableJoins = (joins: Join[]) => {
     return joins.length != 0 ? joins.map((j) => j.table) : [];
