@@ -1,55 +1,73 @@
 # Query Fragments
 
-> **Componha SQL tipado usando fragmentos reutilizáveis. Builders fluentes são opcionais.**
+> Construa **SQL tipado** usando fragmentos SQL reutilizáveis ou builders fluentes.
 
-🇺🇸 **English:** [README.md](README.md)
+**Query Fragments** é uma biblioteca leve para TypeScript construída sobre **sql-string-ts**.
 
----
+Diferente da maioria dos query builders, ela **não substitui SQL por outra linguagem**.
 
-## Filosofia
+Em vez disso, gera fragmentos SQL reutilizáveis que podem ser compostos diretamente em template literals, mantendo tipagem completa do TypeScript e bind automático de parâmetros.
 
-SQL já é uma excelente linguagem.
+```ts
+const query = SQL`
+SELECT
+    ${generateColumns(columns)}
+FROM
+    ${t(clients)}
+${generateJoins(joins)}
+WHERE
+    ${generateFilters(clients, filters)}
+${generateSort(sort)}
+${generatePagination(20, 0)}
+`;
+```
 
-Em vez de substituir SQL por outra DSL, o **Query Fragments** permite compor consultas usando fragmentos reutilizáveis e tipados, construídos sobre o `sql-string-ts`.
-
-Você continua tendo controle sobre o SQL gerado enquanto aproveita:
-
-- schemas tipados;
-- suporte a TypeScript;
-- bind automático de parâmetros;
-- fragmentos SQL reutilizáveis;
-- builders fluentes opcionais.
-
-Os builders são apenas uma camada de conveniência sobre a API de fragmentos.
-
----
-
-## Recursos
-
-- Escreva SQL real
-- Construído sobre `sql-string-ts`
-- Tipagem com TypeScript
-- Fragmentos SQL reutilizáveis
-- Builders fluentes opcionais
-- Geração automática de `JOIN`
-- Bind seguro de parâmetros
-- Leve
-- Compatível com tree shaking
+Se preferir, a mesma funcionalidade também está disponível através de builders fluentes.
 
 ---
 
-## Instalação
+# Recursos
+
+- ✅ Escreva SQL de verdade
+- ✅ Totalmente tipado
+- ✅ Construído sobre `sql-string-ts`
+- ✅ Fragmentos SQL reutilizáveis
+- ✅ Builders fluentes
+- ✅ Bind automático de parâmetros
+- ✅ Geração automática de JOINs
+- ✅ Tree-shakeable
+- ✅ Zero dependências além de `sql-string-ts`
+
+---
+
+# Requisitos
+
+- Node.js 18+
+- TypeScript 5+
+- `sql-string-ts`
+
+---
+
+# Instalação
 
 ```bash
 npm install query-fragments sql-string-ts
 ```
 
+Opcional:
+
+```bash
+npm install zod
+```
+
+caso queira utilizar a integração com Zod.
+
 ---
 
-## Definindo os schemas
+# Definindo Schemas
 
 ```ts
-import { schema } from 'sql-string-ts';
+import { schema } from "sql-string-ts";
 
 enum ClientColumns {
     id,
@@ -65,8 +83,8 @@ enum ClientColumns {
 }
 
 const clients = schema({
-    table: 'clients',
-    alias: 'c',
+    table: "clients",
+    alias: "c",
     columns: ClientColumns
 });
 
@@ -78,27 +96,28 @@ enum PersonTypeColumns {
 }
 
 const personType = schema({
-    table: 'person_type',
-    alias: 'pt',
+    table: "person_type",
+    alias: "pt",
     columns: PersonTypeColumns
 });
 ```
 
 ---
 
-## API de fragmentos SQL
+# API de Fragmentos SQL
 
 A API de fragmentos é o núcleo da biblioteca.
 
-Cada função retorna um fragmento SQL que pode ser utilizado diretamente dentro de `SQL`.
+Cada função gera um Fragmento SQL reutilizável que pode ser composto livremente.
 
 ```ts
 import {
     SQL,
     schema,
     select,
-    selectAll
-} from 'sql-string-ts';
+    selectAll,
+    t
+} from "sql-string-ts";
 
 import {
     generateColumns,
@@ -107,129 +126,126 @@ import {
     groupBy,
     generateSort,
     generatePagination
-} from 'query-fragments';
+} from "query-fragments";
 ```
 
-### SELECT
+## SELECT
 
 ```ts
 const columns = [
-    select(
-        {
-            as: false,
-            prefix: true,
-            quote: true
-        },
-        clients.name,
-        clients.email
-    ),
-    clients.person_type_id,
+    clients.name,
+    clients.email,
     selectAll(personType)
 ];
 
 const joins = [
     {
         table: personType,
-        join: 'INNER JOIN',
+        join: "INNER JOIN",
         foreignkey: clients.person_type_id
     }
 ];
 
 const filters = {
-    text: 'alguma coisa',
     active: 1
 };
 
 const query = SQL`
-SELECT ${generateColumns(columns)}
-FROM clients c
+SELECT
+    ${generateColumns(columns)}
+FROM
+    ${t(clients)}
 ${generateJoins(joins)}
-WHERE ${generateFilters([clients, personType], filters)}
-${groupBy(personType.id)}
-${generateSort({
-    column: personType.text,
-    direction: 'DESC'
-})}
-${generatePagination(20, 20)}
+WHERE
+    ${generateFilters(clients, filters)}
+${generateSort([
+    {
+        column: clients.name,
+        direction: "ASC"
+    }
+])}
+${generatePagination(20, 0)}
 `;
 ```
 
-Os valores informados nos filtros são adicionados como parâmetros da consulta.
+SQL gerado
 
-```ts
-console.log(query.text);
-console.log(query.values);
+```sql
+SELECT
+    c.name,
+    c.email,
+    pt.*
+FROM clients c
+INNER JOIN person_type pt
+    ON pt.id = c.person_type_id
+WHERE
+    c.active = $1
+ORDER BY
+    c.name ASC
+LIMIT 20 OFFSET 0
 ```
 
 ---
 
-### INSERT
+## INSERT
 
 ```ts
-import {
-    generateColumnsInsert,
-    generateValuesInsert
-} from 'query-fragments';
-
 const data = {
-    name: 'Fulano',
-    email: 'fulano@gmail.com'
+    name: "John",
+    email: "john@email.com"
 };
 
 const query = SQL`
-INSERT INTO clients
+INSERT INTO ${t(clients)}
 (
-    ${generateColumnsInsert(data, clients)}
+    ${generateColumnsInsert(data)}
 )
 VALUES
 (
-    ${generateValuesInsert(data, clients)}
+    ${generateValuesInsert(data)}
 )
 `;
 ```
 
 ---
 
-### UPDATE
+## UPDATE
 
 ```ts
-import {
-    generateValuesUpdate,
-    generateFilters
-} from 'query-fragments';
-
 const query = SQL`
-UPDATE clients
-SET ${generateValuesUpdate(
-    {
-        name: 'Fulano',
-        email: 'fulano@gmail.com'
-    },
-    clients
-)}
-WHERE ${generateFilters(clients, {
-    id: 2
-})}
+UPDATE ${t(clients)}
+SET
+    ${generateValuesUpdate(
+        {
+            name: "John",
+            email: "john@email.com"
+        },
+        clients
+    )}
+WHERE
+    ${generateFilters(clients, {
+        id: 1
+    })}
 `;
 ```
 
 ---
 
-### DELETE
+## DELETE
 
 ```ts
 const query = SQL`
-DELETE FROM clients
-WHERE ${generateFilters(clients, {
-    id: 2,
-    person_type_id: 4
-})}
+DELETE FROM ${t(clients)}
+WHERE
+    ${generateFilters(clients, {
+        id: 1
+    })}
 `;
 ```
 
 ---
 
-## Geradores disponíveis
+# Geradores de Fragmentos Disponíveis
 
 ```ts
 generateColumns(...)
@@ -248,13 +264,48 @@ generateValuesUpdate(...)
 extractTableJoins(...)
 ```
 
-Essas funções podem ser combinadas livremente com `SQL` do `sql-string-ts`.
+Essas funções podem ser compostas livremente com `SQL` do `sql-string-ts`.
 
 ---
 
-## Builders fluentes
+# Integração com Zod
 
-Para quem prefere uma API encadeada, a biblioteca também fornece builders.
+Se você já utiliza **Zod** para validação, pode reutilizar seus schemas para definir os schemas SQL sem duplicar a definição das colunas.
+
+```ts
+import { z } from "zod";
+import { schema } from "sql-string-ts";
+
+import {
+    columnsFromZod,
+    enumFromZod
+} from "query-fragments/zod";
+
+const clientSchema = z.object({
+    id: z.number(),
+    name: z.string(),
+    email: z.string(),
+    active: z.boolean()
+});
+
+const clients = schema({
+    table: "clients",
+    alias: "c",
+    columns: enumFromZod(clientSchema)
+});
+
+const columns = columnsFromZod(clientSchema);
+```
+
+Assim, seu schema de validação, os tipos do TypeScript e o schema SQL permanecem sincronizados.
+
+---
+
+# Builders Fluentes
+
+Se preferir uma API fluente, os builders também estão disponíveis.
+
+Internamente, eles utilizam exatamente os mesmos geradores de fragmentos.
 
 ```ts
 import {
@@ -262,183 +313,113 @@ import {
     insertBuilder,
     updateBuilder,
     deleteBuilder
-} from 'query-fragments';
+} from "query-fragments";
 ```
 
-Os builders utilizam internamente os mesmos geradores de fragmentos.
-
----
-
-## Select Builder
+## Select
 
 ```ts
 const query = selectBuilder()
     .select([
-        select(
-            {
-                as: false,
-                prefix: true,
-                quote: true
-            },
-            clients.name,
-            clients.email
-        ),
-        clients.person_type_id,
+        clients.name,
+        clients.email,
         selectAll(personType)
     ])
     .from(clients)
     .joins([
         {
             table: personType,
-            join: 'INNER JOIN',
+            join: "INNER JOIN",
             foreignkey: clients.person_type_id
         }
     ])
         .end()
-    .where(
-        [clients, personType],
-        {
-            text: 'alguma coisa',
-            active: 1,
-            teste: 5
-        }
-    )
-        .raw(
-            SQL`
-                EXISTS (
-                    SELECT 1
-                    FROM alguma_coisa
-                    WHERE id = alguma_coisa_id
-                )
-            `
-        )
-        .end()
-    .groupBy(personType.id)
-    .sort({
-        column: personType.text,
-        direction: 'DESC'
+    .where(clients, {
+        active: 1
     })
-    .pagination(20, 20)
+        .raw(SQL`
+            EXISTS (
+                SELECT 1
+                FROM permissions p
+                WHERE p.client_id = c.id
+            )
+        `)
+        .end()
+    .sort({
+        column: clients.name,
+        direction: "ASC"
+    })
+    .pagination(20, 0)
     .build();
 ```
 
 ---
 
-## Insert Builder
+## Insert
 
 ```ts
 const query = insertBuilder()
     .into(clients)
     .values({
-        name: 'Fulano',
-        email: 'fulano@gmail.com'
+        name: "John",
+        email: "john@email.com"
     })
     .build();
 ```
 
-SQL gerado:
-
-```sql
-INSERT INTO clients (name, email)
-VALUES ($1, $2)
-```
-
 ---
 
-## Update Builder
+## Update
 
 ```ts
 const query = updateBuilder()
     .table(clients)
     .set({
-        name: 'Fulano',
-        email: 'fulano@gmail.com'
+        name: "John",
+        email: "john@email.com"
     })
     .where({
-        id: 2
+        id: 1
     })
         .end()
     .build();
 ```
 
-SQL gerado:
-
-```sql
-UPDATE clients
-SET name = $1, email = $2
-WHERE id = $3
-```
-
 ---
 
-## Delete Builder
+## Delete
 
 ```ts
 const query = deleteBuilder()
     .from(clients)
     .where({
-        id: 2,
-        person_type_id: 4
+        id: 1
     })
         .end()
     .build();
 ```
 
-SQL gerado:
-
-```sql
-DELETE FROM clients
-WHERE id = $1 AND person_type_id = $2
-```
-
 ---
 
-## Fragmentos ou builders?
+# Por que usar Query Fragments?
 
-Use fragmentos quando quiser escrever e controlar diretamente a estrutura do SQL:
+A maioria dos query builders substitui o SQL por sua própria linguagem.
 
-```ts
-const query = SQL`
-SELECT ${generateColumns(columns)}
-FROM clients c
-WHERE ${generateFilters(clients, filters)}
-`;
-```
-
-Use builders quando preferir uma API fluente:
-
-```ts
-const query = selectBuilder()
-    .select(columns)
-    .from(clients)
-    .where(clients, filters)
-        .end()
-    .build();
-```
-
-As duas abordagens utilizam a mesma implementação interna.
-
----
-
-## Por que usar Query Fragments?
-
-A maioria dos query builders substitui SQL por sua própria linguagem.
-
-O Query Fragments segue outra abordagem.
+O Query Fragments segue uma abordagem diferente.
 
 Você continua escrevendo SQL enquanto aproveita:
 
 - colunas tipadas;
 - schemas tipados;
 - bind automático de parâmetros;
-- fragmentos reutilizáveis;
-- composição segura;
-- builders opcionais.
+- fragmentos SQL reutilizáveis;
+- composição segura de SQL;
+- builders fluentes opcionais.
 
-SQL continua sendo a fonte da verdade.
+O SQL continua sendo a fonte da verdade.
 
 ---
 
-## Licença
+# Licença
 
 MIT

@@ -1,11 +1,11 @@
 import { z } from 'zod';
 
-const getSchemaColumns = <T extends z.ZodRawShape>( schema: z.ZodObject<T> ) => {
+const columnsFromZod = <T extends z.ZodRawShape>( schema: z.ZodObject<T> ) => {
     return Object.keys(schema.shape) as Array<keyof z.infer<typeof schema>>;
 };
 
 
-const schemaToEnum = < T extends z.ZodRawShape >( schema: z.ZodObject<T> ) => {
+const enumFromZod = < T extends z.ZodRawShape >( schema: z.ZodObject<T> ) => {
     return Object.fromEntries(
         Object.keys(schema.shape)
             .map(key => [key, key])
@@ -15,6 +15,6 @@ const schemaToEnum = < T extends z.ZodRawShape >( schema: z.ZodObject<T> ) => {
 };
 
 export {
-    getSchemaColumns,
-    schemaToEnum
+    columnsFromZod,
+    enumFromZod
 };
