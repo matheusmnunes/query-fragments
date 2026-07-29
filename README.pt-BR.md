@@ -48,22 +48,6 @@ Se preferir, a mesma funcionalidade também está disponível através de builde
 
 ---
 
-# Instalação
-
-```bash
-npm install query-fragments sql-string-ts
-```
-
-Opcional:
-
-```bash
-npm install zod
-```
-
-caso queira utilizar a integração com Zod.
-
----
-
 # Definindo Schemas
 
 ```ts
@@ -335,8 +319,20 @@ const query = selectBuilder()
     ])
         .end()
     .where(clients, {
-        active: 1
+        erased: 0
     })
+        .and({
+            cpf_cnpj: "998766",
+            email: "john@email.com"
+        })
+        .or({
+            person_type_id: 2,
+            active: 1
+        })
+        .search({
+            property: "name, cpf_cnpj, text",
+            value: "John"
+        })
         .raw(SQL`
             EXISTS (
                 SELECT 1

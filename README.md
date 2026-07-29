@@ -48,22 +48,6 @@ If you prefer, the exact same functionality is also available through fluent bui
 
 ---
 
-# Installation
-
-```bash
-npm install query-fragments sql-string-ts
-```
-
-Optional:
-
-```bash
-npm install zod
-```
-
-if you want to use the Zod integration.
-
----
-
 # Defining Schemas
 
 ```ts
@@ -335,8 +319,20 @@ const query = selectBuilder()
     ])
         .end()
     .where(clients, {
-        active: 1
+        erased: 0
     })
+        .and({
+            cpf_cnpj: "998766",
+            email: "john@email.com"
+        })
+        .or({
+            person_type_id: 2,
+            active: 1
+        })
+        .search({
+            property: "name, cpf_cnpj, text",
+            value: "John"
+        })
         .raw(SQL`
             EXISTS (
                 SELECT 1
