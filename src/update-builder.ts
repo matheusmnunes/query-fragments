@@ -1,5 +1,5 @@
 import { SQL, empty, Columns, t } from 'sql-string-ts';
-import type { EnumType, TableColumns, Fragment } from './types.js';
+import type { EnumType, TableColumns, Fragment, LogicalFilters } from './types.js';
 import { generateFilters, whereBuilder, generateValuesUpdate } from './core.js';
 
 import type { UpdateBuilder, WhereBuilder, SelectBuilder } from './builder-types.js';
@@ -32,7 +32,7 @@ export const updateBuilder = (cfg = { alias: false, quote: true }): UpdateBuilde
        
            return mainBuilder;
         },
-        where ( filters: EnumType, op = '=' ): WhereBuilder<UpdateBuilder> {
+        where ( filters: EnumType, op: LogicalFilters = {c:'=', l:'AND'} ): WhereBuilder<UpdateBuilder> {
             const fragments: Fragment[] = [];
 
             const fields = Object.keys(filters)
@@ -49,14 +49,15 @@ export const updateBuilder = (cfg = { alias: false, quote: true }): UpdateBuilde
                 );
             }
 
-            fragments.push(generateFilters(currentTable, filters, op = '=', { prefix, quote }));
+            fragments.push(generateFilters(currentTable, filters, op, { prefix, quote }));
 
             return whereBuilder(
                 mainBuilder,
                 fragment => query = query.concat(fragment),
                 fragments,
                 filters,
-                currentTable
+                currentTable,
+                { prefix, quote }
             );
         },
         build() {

@@ -9,7 +9,8 @@ import type {
     Fragment,
     SearchFilter,
     SortColumn,
-    AppendQuery
+    AppendQuery,
+    LogicalFilters
 } from './types.js';
 import { WhereBuilder } from './builder-types.js'
 
@@ -55,7 +56,7 @@ const generateColumns = (...columns: Array<ColumnsInput>): Fragment => {
  * @param config 
  * @returns Fragment
  */
-const generateFilters = (tables: Tables, filters?: EnumType, op = '=', config = { prefix: true, quote: true }): Fragment => {
+const generateFilters = (tables: Tables, filters?: EnumType, op:LogicalFilters = {c:'=', l:'AND'}, config = { prefix: true, quote: true }): Fragment => {
     if (!filters) return empty;
 
     const fields = Object.keys(filters);
@@ -70,7 +71,7 @@ const generateFilters = (tables: Tables, filters?: EnumType, op = '=', config = 
         .flatMap(table =>
             fields.map(field =>
                 Object.prototype.hasOwnProperty.call(table, field)
-                    ? SQL`${c(table[field], config)} ${op} ${bind(f[field])}`
+                    ? SQL`${c(table[field], config)} ${op.c} ${bind(f[field])}`
                     : empty
             )
         )
@@ -78,7 +79,7 @@ const generateFilters = (tables: Tables, filters?: EnumType, op = '=', config = 
 
     if(where.length === 0) return empty;
 
-    const final = where.reduce( (a, x, i) => a.concat(i > 0 ? SQL` AND ${x}` : x), empty );
+    const final = where.reduce( (a, x, i) => a.concat(i > 0 ? SQL` ${op.l} ${x}` : x), empty );
 
     return SQL` ${final}`;
 };
@@ -139,7 +140,7 @@ const searchFilter = (tables: Tables, json: SearchFilter, config = { prefix: tru
         )
         .reduce((a, x) => a.concat(a.strings[0] ? SQL` OR ${x}` : x), empty)
 
-    return where.strings[0] ? SQL`(${where})` : empty;
+    return where.strings[0] ? SQL`${where}` : empty;
 }
 
 const generateColumnList = ( ...columns: Array<ColumnMeta<Columns> | Fragment> ): Fragment => {
@@ -295,7 +296,6 @@ const extractTableJoins = (joins: Join[]) => {
     return joins.length != 0 ? joins.map((j) => j.table) : [];
 };
 
-
 const builderError = (scope: string, property: string): never => {
     throw new Error(
         `[QueryBuilder] O bloco .${scope}() ainda está aberto. ` +
@@ -308,35 +308,94 @@ const whereBuilder = <T, TMainBuilder>(
     appendQuery: AppendQuery,
     fragments: Fragment[],
     filters: EnumType | undefined,
-    tables: Tables
+    tables: Tables,
+    cfg: {prefix: boolean, quote: boolean} 
 ): WhereBuilder<TMainBuilder> => {
 
+    const groups: Array<{ connector?: 'AND' | 'OR'; fragment: Fragment }> = fragments.map(
+        (fragment, index) =>
+            index > 0
+                ? { connector: 'AND', fragment }
+                : { fragment }
+    );
+
     const filterBuilder: WhereBuilder<TMainBuilder> = {
+        and(filters: EnumType, op: LogicalFilters = {c:'=', l:'OR'}){
+            const filtersGenerated = generateFilters(tables, filters, op, cfg);
+
+            if (hasFragment(filtersGenerated)) {
+                groups.push({
+                    connector: 'AND',
+                    fragment: filtersGenerated
+                });
+            }
+
+            return filterBuilderProxy;
+        },
+
+        or(filters: EnumType, op: LogicalFilters = {c:'=', l:'AND'}) {
+            const filtersGenerated = generateFilters(tables, filters, op, cfg);
+
+            if (hasFragment(filtersGenerated)) {
+                groups.push({
+                    connector: 'OR',
+                    fragment: filtersGenerated
+                });
+            }
+
+            return filterBuilderProxy;
+        },
+
         additional(...fields: Array<string>) {
-            fragments.push(additionalFilters(filters,...fields));
+            const fragment = additionalFilters(filters,...fields);
+
+            if (hasFragment(fragment)) {
+                groups.push({
+                    connector: 'AND',
+                    fragment
+                });
+            }
 
             return filterBuilderProxy;
         },
 
         raw(fragment: Fragment) {
-            fragments.push(getRawFilters(fragment));
+            const rawFilters = getRawFilters(fragment);
+
+            if (hasFragment(rawFilters)) {
+                groups.push({
+                    connector: 'AND',
+                    fragment: rawFilters
+                });
+            }
 
             return filterBuilderProxy;
         },
 
         search(data: SearchFilter) {
-            fragments.push(searchFilter(tables, data));
+            const fragment = searchFilter(tables, data);
+
+            if (hasFragment(fragment)) {
+                groups.push({
+                    connector: 'AND',
+                    fragment
+                });
+            }
 
             return filterBuilderProxy;
         },
 
         end(): TMainBuilder {
-            const validFragments = fragments.filter(hasFragment);
+            const validGroups = groups.filter(({ fragment }) => hasFragment(fragment));
 
-            if(validFragments.length > 0) {
-                const generatedFilters = validFragments.reduce(
-                    (a, fragment, index) =>
-                        a.concat(index > 0 ? SQL` AND ${fragment}` : fragment),
+            if(validGroups.length > 0) {
+                const generatedFilters = validGroups.reduce(
+                    (a, { connector, fragment }, index) =>
+                        a.concat(
+                            index > 0
+                                ? SQL` ${connector ?? 'AND'} (${fragment})`
+                                : SQL`(${fragment})`
+                        ),
                     empty
                 );
 

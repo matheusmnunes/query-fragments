@@ -1,7 +1,7 @@
-import { SQL, empty, Columns, t } from 'sql-string-ts';
+import { SQL, empty, Columns, t, Schema } from 'sql-string-ts';
 import type { 
     EnumType, TableColumns, Fragment, Join, ColumnsInput, Tables, ColumnMeta,
-    SortColumn
+    SortColumn, LogicalFilters
 } from './types.js';
 import {
     generateFilters, generateColumns, generateJoins, whereBuilder, hasFragment, isFragment,
@@ -78,26 +78,21 @@ export const selectBuilder = (cfg = { alias: true, quote: true }):SelectBuilder 
             return joinBuilderProxy;
         },
 
-        where ( tables: Tables, filters?: EnumType, op = '='): WhereBuilder<SelectBuilder> {
+        where ( tables: Tables, filters?: EnumType, op:LogicalFilters = {c:'=', l:'AND'} ): WhereBuilder<SelectBuilder> {
             const fragments: Fragment[] = [];
             const config = { prefix, quote }
-
-            fragments.push(generateFilters(tables, filters, op, config));
-            fragments.push(
-                generateFilters(
-                    extractTableJoins(currentJoins),
-                    filters,
-                    op,
-                    config
-                )
-            );
+            const normalizedTables = Array.isArray(tables) ? tables : [tables];
+            const allTables = [...new Set([ ...normalizedTables, ...extractTableJoins(currentJoins) ])];
+        
+            fragments.push( generateFilters(allTables, filters, op, config) );
 
             return whereBuilder(
                 mainBuilder,
                 fragment => query = query.concat(fragment),
                 fragments,
                 filters,
-                tables
+                allTables,
+                config
             );
         },
 

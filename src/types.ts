@@ -15,8 +15,13 @@ type AnySchema = Schema<any>;
 
 type Tables = AnySchema | readonly AnySchema[];
 
+type LogicalFilters = {
+    c: '=' | '<>' | '!=' | '>=' | '<=' | '>' | '<',
+    l: 'AND' | 'OR';
+}
+
 type Join = {
-    table: Schema<EnumType>;
+    table: Schema<Columns>;
     primaryKey?: ColumnMeta<EnumType> | Fragment;
     operator?: string;
     join?: string;
@@ -48,5 +53,6 @@ export type {
     SortColumn,
     AppendQuery,
     ColumnMeta,
-    Columns
+    Columns,
+    LogicalFilters
 };

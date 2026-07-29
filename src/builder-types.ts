@@ -8,7 +8,8 @@ import type {
     SortColumn,
     TableColumns,
     Tables,
-    SearchFilter
+    SearchFilter,
+    LogicalFilters
 } from './types.js';
 
 export type SelectBuilder = {
@@ -19,7 +20,7 @@ export type SelectBuilder = {
     where<T>(
         tables: Tables,
         filters?: EnumType,
-        op?: string
+        op?: LogicalFilters
     ): WhereBuilder<SelectBuilder>;
 
     having(fragment: Fragment): SelectBuilder;
@@ -35,6 +36,8 @@ export type SelectJoinBuilder = {
 };
 
 export type WhereBuilder<TMainBuilder> = {
+    and(filters: EnumType, op?: LogicalFilters): WhereBuilder<TMainBuilder>,
+    or(filters: EnumType, op?: LogicalFilters): WhereBuilder<TMainBuilder>,
     additional(...fields: string[]): WhereBuilder<TMainBuilder>;
     raw(fragment: Fragment): WhereBuilder<TMainBuilder>;
     search(data: SearchFilter): WhereBuilder<TMainBuilder>;
@@ -50,12 +53,12 @@ export type InsertBuilder = {
 export type UpdateBuilder = {
     table(table: TableColumns<Columns>): UpdateBuilder;
     set(data: EnumType): UpdateBuilder;
-    where(filters: EnumType, op?: string): WhereBuilder<UpdateBuilder>;
+    where(filters: EnumType, op?: LogicalFilters): WhereBuilder<UpdateBuilder>;
     build(): Fragment;
 };
 
 export type DeleteBuilder = {
     from(table: TableColumns<Columns>): DeleteBuilder;
-    where(filters: EnumType, op?: string): WhereBuilder<DeleteBuilder>;
+    where(filters: EnumType, op?: LogicalFilters): WhereBuilder<DeleteBuilder>;
     build(): Fragment;
 };

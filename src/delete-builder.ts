@@ -1,4 +1,4 @@
-import type { EnumType, TableColumns, Fragment } from './types.ts';
+import type { EnumType, TableColumns, Fragment, LogicalFilters } from './types.ts';
 import { SQL, empty, Columns, t } from 'sql-string-ts';
 import {generateFilters, whereBuilder} from './core.js'
 import type { DeleteBuilder, WhereBuilder } from './builder-types.js';
@@ -18,7 +18,7 @@ export const deleteBuilder = (cfg = { alias: false, quote: true }): DeleteBuilde
 
             return mainBuilder;
         },
-        where<T>( filters: EnumType, op = '=' ): WhereBuilder<DeleteBuilder> {
+        where<T>( filters: EnumType, op: LogicalFilters = {c:'=', l:'AND'} ): WhereBuilder<DeleteBuilder> {
             const fragments: Fragment[] = [];
 
             const fields = Object.keys(filters)
@@ -35,14 +35,15 @@ export const deleteBuilder = (cfg = { alias: false, quote: true }): DeleteBuilde
                 );
             }
 
-            fragments.push(generateFilters(currentTable, filters, op, { prefix, quote }));
+            fragments.push( generateFilters( currentTable, filters, op, { prefix, quote } ) );
 
             return whereBuilder(
                 mainBuilder,
                 fragment => query = query.concat(fragment),
                 fragments,
                 filters,
-                currentTable
+                currentTable,
+                { prefix, quote }
             );
         },
         build() {
